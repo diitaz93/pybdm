@@ -72,8 +72,6 @@ class NodePerturbationExperiment:
             self.X = X
         else:
             self.set_data(X)
-        if not self.ndim==2:
-            raise ValueError("The number of dimensions of input dataset has to be 2")
 
     def __repr__(self):
         cn = self.__class__.__name__
@@ -106,12 +104,10 @@ class NodePerturbationExperiment:
         if not np.isin(np.unique(X), range(self.bdm.nsymbols)).all():
             raise ValueError("'X' is malformed (too many or ill-mapped symbols)")
         self.X = X
-        #self._counter = self.bdm.decompose_and_count(X)
         if self.metric == 'bdm':
             self._value = self.bdm.bdm(self.X)
         elif self.metric == 'ent':
-            self._value = self.bdm.ent(self._counter)
-            #self._ncounts = sum(self._counter.values())
+            self._value = self.bdm.ent(self.X)
         if not self.bipartite_network and self.shape[0]!=self.shape[1]:
             raise ValueError("'X' has to be a squared matrix for non-bipartite network")
             
@@ -142,7 +138,7 @@ class NodePerturbationExperiment:
             self._value = new_ent
         return new_ent - old_ent
 
-    def perturb(self, idx, axis=0, keep_changes=False, bipartite_network=False):
+    def perturb(self, idx, axis=0, keep_changes=False):
         """Delete node of the dataset.
 
         Parameters
@@ -155,12 +151,6 @@ class NodePerturbationExperiment:
         keep_changes : bool
             If ``True`` then changes in the dataset are persistent,
             so each perturbation step depends on the previous ones.
-        bipartite_network: boolean
-            If ``False``, the dataset (X) is the adjacency matrix of a one-type node
-            network where all nodes can connect to each other, otherwise the matrix 
-            represents a bipartite (two-type node) network where only pairs of nodes 
-            of different types can connect, where nodes from one type are in the
-            rows and from the other type in the columns.
 
         Returns
         -------
@@ -178,7 +168,8 @@ class NodePerturbationExperiment:
         """
         #ToDo checks
         
-        return self._method(idx, axis, keep_changes, bipartite_network)
+        return self._method(idx, axis, keep_changes,
+                            bipartite_network=self.bipartite_network)
 
     def run(self, first_idx=None, second_idx=None, axis=None):
         """Run node perturbation experiment. Calls the function self.perturb for
@@ -197,12 +188,6 @@ class NodePerturbationExperiment:
             If ``None`` then all values are assigned this way.
             If set then its dimensions must agree with the dimensions
             of ``idx`` (they are horizontally stacked).
-        bipartite_network: boolean
-            If ``False``, the dataset (X) is the adjacency matrix of a one-type node
-            network where all nodes can connect to each other, otherwise the matrix 
-            represents a bipartite (two-type node) network where only pairs of nodes 
-            of different types can connect, where nodes from one type are in the
-            rows and from the other type in the columns.
 
         Returns
         -------
@@ -228,33 +213,26 @@ class NodePerturbationExperiment:
         if not self.bipartite_network:
             if first_idx is None: #second_idx is ignored if any
                 first_idx = np.arange(self.shape[0])
-            output = [self.perturb(x,keep_changes=False,
-                                   bipartite_network=self.bipartite_network)
-                      for x in first_idx]
+            output = np.array([self.perturb(x,keep_changes=False) for x in first_idx])
             return output
         else:
             if first_idx is None:
                 first_idx = np.arange(self.shape[0])
                 second_idx = np.arange(self.shape[1])
-                out_rows = [self.perturb(x, axis=0,keep_changes=False,
-                                         bipartite_network=self.bipartite_network)
-                            for x in first_idx]
-                out_cols = [self.perturb(x, axis=1,keep_changes=False,
-                                         bipartite_network=self.bipartite_network)
-                            for x in second_idx]
+                out_rows = np.array([self.perturb(x, axis=0,keep_changes=False)
+                            for x in first_idx])
+                out_cols = np.array([self.perturb(x, axis=1,keep_changes=False)
+                            for x in second_idx])
                 return out_rows, out_cols
             elif second_index is None:
-                output = [self.perturb(x, axis=axis,keep_changes=False,
-                                         bipartite_network=self.bipartite_network)
-                            for x in first_idx]
+                output = np.array([self.perturb(x, axis=axis,keep_changes=False)
+                            for x in first_idx])
                 return output
             else:
-                out_rows = [self.perturb(x, axis=0,keep_changes=False,
-                                         bipartite_network=self.bipartite_network)
-                            for x in first_idx]
-                out_cols = [self.perturb(x, axis=1,keep_changes=False,
-                                         bipartite_network=self.bipartite_network)
-                            for x in second_idx]
+                out_rows = np.aray([self.perturb(x, axis=0,keep_changes=False)
+                            for x in first_idx])
+                out_cols = np.array([self.perturb(x, axis=1,keep_changes=False)
+                            for x in second_idx])
                 return out_rows, col_rows
  
                 
