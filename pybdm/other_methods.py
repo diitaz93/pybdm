@@ -1,4 +1,21 @@
-
+ if first_idx is None:
+                first_idx = np.arange(self.shape[0])
+                second_idx = np.arange(self.shape[1])
+                out_rows = np.array([self.perturb(x, axis=0,keep_changes=False)
+                            for x in first_idx])
+                out_cols = np.array([self.perturb(x, axis=1,keep_changes=False)
+                            for x in second_idx])
+                return out_rows, out_cols
+            elif second_idx is None:
+                output = np.array([self.perturb(x, axis=axis,keep_changes=False)
+                            for x in first_idx])
+                return output
+            else:
+                out_rows = np.array([self.perturb(x, axis=0,keep_changes=False)
+                            for x in first_idx])
+                out_cols = np.array([self.perturb(x, axis=1,keep_changes=False)
+                            for x in second_idx])
+                return out_rows, out_cols
         ################################################################
         if first_idx is None:
             if second_idx is not None:

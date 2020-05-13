@@ -13,10 +13,10 @@ class NodePerturbationExperiment:
     causal significance as opposed to noise parts.
 
     Nodes which when removed yield negative contribution to the overall
-    complexity after change are likely to be important for the system,
-    since their removal make it more noisy. On the other hand nodes that yield
-    positive contribution to the overall complexity after removal are likely
-    to be noise since they elongate the system's description length.
+    complexity  are likely to be important for the system, since their 
+    removal make it more noisy. On the other hand nodes that yield positive 
+    contribution to the overall complexity after removal are likely to be noise 
+    since they elongate the system's description length.
 
     Attributes
     ----------
@@ -28,16 +28,16 @@ class NodePerturbationExperiment:
     metric : {'bdm', 'ent'}
         Which metric to use for perturbing.
     bipartite_network: boolean
-            If ``False``, the dataset (X) is the adjacency matrix of a one-type node
-            network where all nodes can connect to each other, otherwise the matrix 
-            represents a bipartite (two-type node) network where only pairs of nodes 
-            of different types can connect, where nodes from one type are in the
-            rows and from the other type in the columns.
+        If ``False``, the dataset (X) is the adjacency matrix of a one-type node
+        network where all nodes can connect to each other, otherwise the matrix 
+        represents a bipartite (two-type node) network where only pairs of nodes 
+        of different types can connect, where nodes from one category are in the
+        rows and nodes from the other category in the columns.
 
     See also
     --------
     pybdm.bdm.BDM : BDM computations
-#
+
     Examples
     --------
     >>> import numpy as np
@@ -47,9 +47,9 @@ class NodePerturbationExperiment:
     >>> npe = NodePerturbationExperiment(bdm, metric='bdm')
     >>> npe.set_data(X)
 
-    >>> idx = np.argwhere(X) # Perturb only ones (1 --> 0)
-    >>> delta_bdm = pe.run(idx)
-    >>> len(delta_bdm) == idx.shape[0]
+    >>> idx = [1,5,10,50] # Remove these specific nodes
+    >>> delta_bdm = npe.run(idx)
+    >>> len(delta_bdm) == len(idx)
     True
 
     More examples can be found in :doc:`usage`.
@@ -59,9 +59,7 @@ class NodePerturbationExperiment:
         self.bdm = bdm
         self.metric = metric
         self.bipartite_network = bipartite_network
-        #self._counter = None
         self._value = None
-        #self._ncounts = None
         if self.metric == 'bdm':
             self._method = self._update_bdm
         elif self.metric == 'ent':
@@ -156,22 +154,22 @@ class NodePerturbationExperiment:
         -------
         float :
             BDM value change.
-#
+
         Examples
         --------
-        >>> from pybdm import BDM
-        >>> bdm = BDM(ndim=1)
-        >>> X = np.ones((30, ), dtype=int)
-        >>> perturbation = PerturbationExperiment(bdm, X)
-        >>> perturbation.perturb((10, ), -1) # doctest: +FLOAT_CMP
-        26.91763012739709
+        >>> import numpy as np
+        >>> from pybdm import BDM, NodePerturbationExperiment
+        >>> bdm = BDM(ndim=2)
+        >>> X = np.random.randint(0, 2, (100, 100))
+        >>> perturbation = NodePerturbationExperiment(bdm, X)
+        >>> perturbation.perturb(7)
+        -1541.9845807106612
         """
-        #ToDo checks
         
         return self._method(idx, axis, keep_changes,
                             bipartite_network=self.bipartite_network)
 
-    def run(self, first_idx=None, second_idx=None, axis=None):
+    def run(self, first_idx=None, second_idx=None, axis=0):
         """Run node perturbation experiment. Calls the function self.perturb for
         each node index and keep_changes=False.
 
@@ -208,31 +206,30 @@ class NodePerturbationExperiment:
         array([26.91763013, 27.34823681])
         """
         if first_idx is None and second_idx is not None:
-            raise ValueError("There need to be a value for first_idx if a value for second_idx is supplied")
+            raise ValueError("There needs to be a value for first_idx if a value for second_idx is supplied")
         
         if not self.bipartite_network:
-            if first_idx is None: #second_idx is ignored if any
-                first_idx = np.arange(self.shape[0])
-            output = np.array([self.perturb(x,keep_changes=False) for x in first_idx])
-            return output
-        else:
             if first_idx is None:
                 first_idx = np.arange(self.shape[0])
-                second_idx = np.arange(self.shape[1])
-                out_rows = np.array([self.perturb(x, axis=0,keep_changes=False)
-                            for x in first_idx])
-                out_cols = np.array([self.perturb(x, axis=1,keep_changes=False)
-                            for x in second_idx])
-                return out_rows, out_cols
-            elif second_index is None:
-                output = np.array([self.perturb(x, axis=axis,keep_changes=False)
-                            for x in first_idx])
+            output = np.array([self._method(x,axis=axis, keep_changes=False,
+                                            bipartite_network=self.bipartite_network)
+                               for x in first_idx])
+            return output
+        else:
+            if first_idx is not None and second_idx is None:
+                output = np.array([self._method(x, axis=axis,keep_changes=False,
+                                                bipartite_network=self.bipartite_network)
+                                   for x in first_idx])
                 return output
-            else:
-                out_rows = np.aray([self.perturb(x, axis=0,keep_changes=False)
-                            for x in first_idx])
-                out_cols = np.array([self.perturb(x, axis=1,keep_changes=False)
-                            for x in second_idx])
-                return out_rows, col_rows
+            if first_idx is None and second_idx is None:
+                first_idx = np.arange(self.shape[0])
+                second_idx = np.arange(self.shape[1])
+            out_rows = np.array([self._method(x, axis=0,keep_changes=False,
+                                              bipartite_network=self.bipartite_network)
+                                 for x in first_idx])
+            out_cols = np.array([self._method(x, axis=1,keep_changes=False,
+                                              bipartite_network=self.bipartite_network)
+                                 for x in second_idx])
+            return out_rows, out_cols
  
                 
