@@ -2,6 +2,7 @@
 from itertools import product
 from random import choice
 import numpy as np
+import warnings
 
 
 class NodePerturbationExperiment:
@@ -167,22 +168,20 @@ class NodePerturbationExperiment:
         return self._method(idx, axis, keep_changes,
                             bipartite_network=self.bipartite_network)
 
-    def run(self, idx1=None, idx2=None, axis=0):
+    def run(self, idx1=None, idx2=None):
         """Run node perturbation experiment. Calls the function self.perturb for
         each node index and keep_changes=False.
 
         Parameters
         ----------
-        idx1 : an array-like of node indices to be perturbed in the adyacency matrix.
+        idx1 : a list of node indices to be perturbed in the adyacency matrix.
             If the network is bipartite, their entries are the row-indices of the nodes
             to be removed, otherwise is the index for both rows and columns. If is None
-            all the nodes are perturbed.
-        idx2 : an array-like of node indices to be perturbed in the adyacency matrix.
+            all the nodes are perturbed, if is empty ([]), no nodes are perturbed.
+        idx2 : a list of node indices to be perturbed in the adyacency matrix.
             If the network is bipartite, their entries are the column-indices of the nodes
-            to be removed, otherwise is ignored.
-        axis : int
-            axis of the matrix in which the nodes will be removed. Only used when
-            bipartite_network=True, otherwise zero is used.
+            to be removed, otherwise is ignored. If is None all the nodes are perturbed, 
+            if is empty ([]), no nodes are perturbed.
 
         Returns
         -------
@@ -204,31 +203,36 @@ class NodePerturbationExperiment:
         >>> print(type(data),len(data))
         <class 'numpy.ndarray'> 6
         """
-        if idx1 is None and idx2 is not None:
-            raise ValueError("There needs to be a value for idx1 if a value for idx2 is supplied")
-        
         if not self.bipartite_network:
+            if idx1 == []:
+                raise ValueError("idx1 can not be empty for bipartire_network=False")
+            if idx2 is not None:
+                warnings.warn("Indices in idx2 ignored, changing only indices in idx1")
             if idx1 is None:
                 idx1 = np.arange(self.shape[0])
-            output = np.array([self._method(x,axis=axis, keep_changes=False,
+            output = np.array([self._method(x,axis=0, keep_changes=False,
                                             bipartite_network=self.bipartite_network)
                                for x in idx1])
             return output
         else:
-            if idx1 is not None and idx2 is None:
-                output = np.array([self._method(x, axis=axis,keep_changes=False,
-                                                bipartite_network=self.bipartite_network)
-                                   for x in idx1])
-                return output
-            if idx1 is None and idx2 is None:
+            if idx1 == [] and idx2 == []:
+                raise ValueError("There has to be indices to change in either idx1 or idx2")
+            if idx1 is None:
                 idx1 = np.arange(self.shape[0])
+            if idx2 is None:
                 idx2 = np.arange(self.shape[1])
-            out_rows = np.array([self._method(x, axis=0,keep_changes=False,
-                                              bipartite_network=self.bipartite_network)
-                                 for x in idx1])
-            out_cols = np.array([self._method(x, axis=1,keep_changes=False,
-                                              bipartite_network=self.bipartite_network)
-                                 for x in idx2])
+            if idx1 != []:
+                out_rows = np.array([self._method(x, axis=0,keep_changes=False,
+                                                  bipartite_network=self.bipartite_network)
+                                     for x in idx1])
+                if idx2 == []:
+                    return out_rows
+            if idx2 != []:
+                out_cols = np.array([self._method(x, axis=1,keep_changes=False,
+                                                  bipartite_network=self.bipartite_network)
+                                     for x in idx2])
+                if idx1 == []:
+                    return out_cols
             return out_rows, out_cols
  
                 
