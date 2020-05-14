@@ -1,4 +1,4 @@
-"""_Algorithms based on ``BDM`` objects."""
+"""_Node perturbation algorithm based on ``BDM`` objects."""
 from itertools import product
 from random import choice
 import numpy as np
@@ -142,13 +142,11 @@ class NodePerturbationExperiment:
         Parameters
         ----------
         idx : int
-            Number of row or column of node in adyacency matrix.
+            Index of row or column of node in the dataset.
         axis : int
-            If bipartite_network is ``True``, is the axis that is used to remove node,
-            otherwise is ignored.
+            Axis of adjaceny matrix.
         keep_changes : bool
-            If ``True`` then changes in the dataset are persistent,
-            so each perturbation step depends on the previous ones.
+            If ``True`` the deletion of the node in the dataset is preserved.
 
         Returns
         -------
@@ -169,67 +167,68 @@ class NodePerturbationExperiment:
         return self._method(idx, axis, keep_changes,
                             bipartite_network=self.bipartite_network)
 
-    def run(self, first_idx=None, second_idx=None, axis=0):
+    def run(self, idx1=None, idx2=None, axis=0):
         """Run node perturbation experiment. Calls the function self.perturb for
         each node index and keep_changes=False.
 
         Parameters
         ----------
-        first_idx : an array of row indices to be perturbed in the adyacency matrix.
-            If the network is not bipartite, is the index for both rows and columns, 
-            otherwise
-
-        axis : array_like or None
-            Value to assign during perturbation.
-            Negative values correspond to changing value to other
-            randomly selected symbols from the alphabet.
-            If ``None`` then all values are assigned this way.
-            If set then its dimensions must agree with the dimensions
-            of ``idx`` (they are horizontally stacked).
+        idx1 : an array-like of node indices to be perturbed in the adyacency matrix.
+            If the network is bipartite, their entries are the row-indices of the nodes
+            to be removed, otherwise is the index for both rows and columns. If is None
+            all the nodes are perturbed.
+        idx2 : an array-like of node indices to be perturbed in the adyacency matrix.
+            If the network is bipartite, their entries are the column-indices of the nodes
+            to be removed, otherwise is ignored.
+        axis : int
+            axis of the matrix in which the nodes will be removed. Only used when
+            bipartite_network=True, otherwise zero is used.
 
         Returns
         -------
-        For bipartite_network==True: 
-            One 1D float array with perturbation values for each node.
-        For bipartite_network==False:
-            Two 1D float arrays with perturbation values corresponding to row nodes
-            and column nodes.
+        For bipartite networks with indices (or None) in both axes: 
+            Tuple of 1D arrays with perturbation values corresponding to row and column
+            indices of nodes.
+        For non-bipartite networks or only one-index-array networks:
+            One 1D float arrays with perturbation values corresponding to nodes in 
+            adjacency matrix.
 
         Examples
         --------
         >>> from pybdm import BDM
-        >>> bdm = BDM(ndim=1)
-        >>> X = np.ones((30, ), dtype=int)
-        >>> perturbation = PerturbationExperiment(bdm, X)
-        >>> changes = np.array([10, 20])
-        >>> perturbation.run(changes) # doctest: +FLOAT_CMP
-        array([26.91763013, 27.34823681])
+        >>> bdm = BDM(ndim=2)
+        >>> X = np.random.randint(0,2,size=(100, 100))
+        >>> idx1 = [1,6,9,20,56,70]
+        >>> perturbation = NodePerturbationExperiment(bdm, X)
+        >>> data = perturbation.run(idx)
+        >>> print(type(data),len(data))
+        <class 'numpy.ndarray'> 6
         """
-        if first_idx is None and second_idx is not None:
-            raise ValueError("There needs to be a value for first_idx if a value for second_idx is supplied")
+        if idx1 is None and idx2 is not None:
+            raise ValueError("There needs to be a value for idx1 if a value for idx2 is supplied")
         
         if not self.bipartite_network:
-            if first_idx is None:
-                first_idx = np.arange(self.shape[0])
+            if idx1 is None:
+                idx1 = np.arange(self.shape[0])
             output = np.array([self._method(x,axis=axis, keep_changes=False,
                                             bipartite_network=self.bipartite_network)
-                               for x in first_idx])
+                               for x in idx1])
             return output
         else:
-            if first_idx is not None and second_idx is None:
+            if idx1 is not None and idx2 is None:
                 output = np.array([self._method(x, axis=axis,keep_changes=False,
                                                 bipartite_network=self.bipartite_network)
-                                   for x in first_idx])
+                                   for x in idx1])
                 return output
-            if first_idx is None and second_idx is None:
-                first_idx = np.arange(self.shape[0])
-                second_idx = np.arange(self.shape[1])
+            if idx1 is None and idx2 is None:
+                idx1 = np.arange(self.shape[0])
+                idx2 = np.arange(self.shape[1])
             out_rows = np.array([self._method(x, axis=0,keep_changes=False,
                                               bipartite_network=self.bipartite_network)
-                                 for x in first_idx])
+                                 for x in idx1])
             out_cols = np.array([self._method(x, axis=1,keep_changes=False,
                                               bipartite_network=self.bipartite_network)
-                                 for x in second_idx])
+                                 for x in idx2])
             return out_rows, out_cols
  
                 

@@ -79,3 +79,35 @@
                                          bipartite_network=bipartite_network)
                             for x in second_idx]
                 return out_rows, out_cols
+#######################################################################
+if not self.bipartite_network:
+    if idx1==[]:
+        raise ValueError("idx1 can not be empty for bipartire_network=False")
+    if idx2 is not None:
+        warnings.warn("Indices in idx2 ignored, changing only indices in idx1")
+    if idx1 is None:
+        idx1 = np.arange(self.shape[0])
+    output = np.array([self._method(x,axis=0, keep_changes=False,
+                                    bipartite_network=self.bipartite_network)
+                       for x in idx1])
+    return output
+else:
+    if idx1==[] and idx2==[]:
+        raise ValueError("There has to be indices to change in either idx1 or idx2")
+    if idx1==None:
+        idx1 = np.arange(self.shape[0])
+    if idx2==None:
+        idx2 = np.arange(self.shape[1])
+    if idx1!=[]:
+        out_rows = np.array([self._method(x, axis=0,keep_changes=False,
+                                          bipartite_network=self.bipartite_network)
+                             for x in idx1])
+        if idx2==[]:
+            return out_rows
+    if idx2!=[]:
+        out_cols = np.array([self._method(x, axis=1,keep_changes=False,
+                                          bipartite_network=self.bipartite_network)
+                             for x in idx2])
+        if idx1==[]:
+            return out_cols
+    return out_rows, out_cols
